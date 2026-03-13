@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>AI vs Human Text Detector</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; background: #f4f4f9; }
+        textarea { width: 100%; height: 200px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        button:disabled { background: #ccc; }
+        #result { margin-top: 20px; font-weight: bold; font-size: 1.2em; }
+        .status { color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+    <h2>Детектор ИИ-текста</h2>
+    <p class="status" id="status">Загрузка библиотеки...</p>
+    
+    <textarea id="inputText" placeholder="Вставьте текст для проверки (желательно на английском)..."></textarea>
+    <br>
+    <button id="checkBtn" disabled>Проверить текст</button>
+
+    <div id="result"></div>
+
+    <script type="module">
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
+
+        const status = document.getElementById('status');
+        const checkBtn = document.getElementById('checkBtn');
+        const inputText = document.getElementById('inputText');
+        const resultDiv = document.getElementById('result');
+
+        let detector;
+
+        // Инициализация модели
+        async function init() {
+            try {
+                status.textContent = 'Загрузка модели (это может занять время)...';
+                // Используем модель Xenova, оптимизированную для JS
+                detector = await pipeline('text-classification', 'Xenova/roberta-base-openai-detector');
+                status.textContent = 'Модель готова!';
+                checkBtn.disabled = false;
+            } catch (err) {
+                status.textContent = 'Ошибка загрузки: ' + err.message;
+            }
+        }
+
+        checkBtn.addEventListener('click', async () => {
+            const text = inputText.value.trim();
+            if (!text) return;
+
+            resultDiv.textContent = 'Анализирую...';
+            
+            // Запуск классификации
+            const output = await detector(text);
+            
+            // Вывод результата
+            const label = output[0].label; // 'Fake' (ИИ) или 'Real' (Человек)
+            const score = (output[0].score * 100).toFixed(2);
+            
+            const translation = label === 'Fake' ? '🤖 Искусственный интеллект' : '👨‍💻 Человек';
+            resultDiv.innerHTML = `Результат: ${translation} <br><small>Уверенность: ${score}%</small>`;
+        });
+
+        init();
+    </script>
+</body>
+</html>
